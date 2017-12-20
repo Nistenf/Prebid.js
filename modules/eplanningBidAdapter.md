@@ -22,7 +22,6 @@ var adUnits = [
         bidder: 'eplanning',
         params: {
           ci: '18f66',
-          t: '1'
         }
       }]
     }

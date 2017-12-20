@@ -3,7 +3,7 @@ import { registerBidder } from 'src/adapters/bidderFactory';
 
 const BIDDER_CODE = 'eplanning';
 const rnd = Math.random();
-const DEFAULT_SV = '//ads.us.e-planning.net';
+const DEFAULT_SV = 'ads.us.e-planning.net';
 const PARAMS = ['ci', 'sv', 'isv', 't'];
 const DOLLARS = 'USD';
 const NET_REVENUE = true;
@@ -14,14 +14,14 @@ const FILE = 'file';
 export const spec = {
   code: BIDDER_CODE,
   isBidRequestValid: function(bid) {
-    return bid.params.ci;
+    return Boolean(bid.params.ci);
   },
   buildRequests: function(bidRequests) {
     const method = 'GET';
     const dfpClientId = '1';
     const sec = 'ROS';
     const urlConfig = getUrlConfig(bidRequests);
-    const url = '//' + urlConfig.sv || DEFAULT_SV + '/hb/1/' + urlConfig.ci + '/' + dfpClientId + '/' + (utils.getTopWindowLocation().hostname || FILE) + '/' + sec;
+    const url = '//' + (urlConfig.sv || DEFAULT_SV) + '/hb/1/' + urlConfig.ci + '/' + dfpClientId + '/' + (utils.getTopWindowLocation().hostname || FILE) + '/' + sec;
     const referrerUrl = utils.getTopWindowReferrer();
     const spacesString = getSpacesString(bidRequests);
     let params = {
@@ -111,7 +111,7 @@ function getUrlConfig(bidRequests) {
 }
 function getSpacesString(bids) {
   const spacesString = bids.map(bid =>
-    bid.adUnitCode + ':' + bid.sizes && bid.sizes.length ? utils.parseSizesInput(bid.sizes).join(',') : NULL_SIZE
+    bid.adUnitCode + ':' + (bid.sizes && bid.sizes.length ? utils.parseSizesInput(bid.sizes).join(',') : NULL_SIZE)
   ).join('+');
 
   return spacesString;
