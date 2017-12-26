@@ -4,10 +4,10 @@ import { registerBidder } from 'src/adapters/bidderFactory';
 const BIDDER_CODE = 'eplanning';
 const rnd = Math.random();
 const DEFAULT_SV = 'ads.us.e-planning.net';
-const PARAMS = ['ci', 'sv', 'isv', 't'];
+const PARAMS = ['ci', 'sv'];
 const DOLLARS = 'USD';
 const NET_REVENUE = true;
-const TTL = 360;
+const TTL = 120;
 const NULL_SIZE = '1x1';
 const FILE = 'file';
 
@@ -70,7 +70,7 @@ export const spec = {
   },
   getUserSyncs: function(syncOptions, serverResponses) {
     const syncs = [];
-    const response = serverResponses[0].body;
+    const response = !utils.isEmpty(serverResponses) && serverResponses[0].body;
 
     if (response && !utils.isEmpty(response.cs)) {
       const responseSyncs = response.cs;
@@ -93,6 +93,9 @@ export const spec = {
   },
 }
 
+function cleanName(name) {
+  return name.replace(/_|\.|-|\//g, '').replace(/\)\(|\(|\)/g, '_').replace(/^_+|_+$/g, '');
+}
 function getUrlConfig(bidRequests) {
   let config = {};
   bidRequests.forEach(bid => {
@@ -111,7 +114,7 @@ function getUrlConfig(bidRequests) {
 }
 function getSpacesString(bids) {
   const spacesString = bids.map(bid =>
-    bid.adUnitCode + ':' + (bid.sizes && bid.sizes.length ? utils.parseSizesInput(bid.sizes).join(',') : NULL_SIZE)
+    cleanName(bid.adUnitCode) + ':' + (bid.sizes && bid.sizes.length ? utils.parseSizesInput(bid.sizes).join(',') : NULL_SIZE)
   ).join('+');
 
   return spacesString;

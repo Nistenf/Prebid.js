@@ -7,6 +7,7 @@ describe('E-Planning Adapter', () => {
   const adapter = newBidder('spec');
   const CI = '12345';
   const ADUNIT_CODE = 'adunit-code';
+  const CLEAN_ADUNIT_CODE = 'adunitcode';
   const CPM = 1.3;
   const W = '300';
   const H = '250';
@@ -138,11 +139,12 @@ describe('E-Planning Adapter', () => {
 
     it('should return e parameter with value according to the adunit sizes', () => {
       const e = spec.buildRequests(bidRequests).data.e;
-      expect(e).to.equal(ADUNIT_CODE + ':300x250,300x600');
+      expect(e).to.equal(CLEAN_ADUNIT_CODE + ':300x250,300x600');
     });
 
     it('should return correct e parameter with more than one adunit', () => {
       const NEW_CODE = ADUNIT_CODE + '2';
+      const CLEAN_NEW_CODE = CLEAN_ADUNIT_CODE + '2';
       const anotherBid = {
         'bidder': 'eplanning',
         'params': {
@@ -154,7 +156,7 @@ describe('E-Planning Adapter', () => {
       bidRequests.push(anotherBid);
 
       const e = spec.buildRequests(bidRequests).data.e;
-      expect(e).to.equal(ADUNIT_CODE + ':300x250,300x600+' + NEW_CODE + ':100x100');
+      expect(e).to.equal(CLEAN_ADUNIT_CODE + ':300x250,300x600+' + CLEAN_NEW_CODE + ':100x100');
     });
 
     it('should return correct e parameter when the adunit has no size', () => {
@@ -167,7 +169,7 @@ describe('E-Planning Adapter', () => {
       };
 
       const e = spec.buildRequests([noSizeBid]).data.e;
-      expect(e).to.equal(ADUNIT_CODE + ':1x1');
+      expect(e).to.equal(CLEAN_ADUNIT_CODE + ':1x1');
     });
 
     it('should return ur parameter with current window url', () => {
