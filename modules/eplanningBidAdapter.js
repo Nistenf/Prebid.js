@@ -11,7 +11,6 @@ const NET_REVENUE = true;
 const TTL = 120;
 const NULL_SIZE = '1x1';
 const FILE = 'file';
-let adUnitToBidId = {};
 
 export const spec = {
   code: BIDDER_CODE,
@@ -19,7 +18,6 @@ export const spec = {
     return Boolean(bid.params.ci) || Boolean(bid.params.t);
   },
   buildRequests: function(bidRequests) {
-    saveBidIds(bidRequests);
     const method = 'GET';
     const dfpClientId = '1';
     const sec = 'ROS';
@@ -50,6 +48,7 @@ export const spec = {
       method: method,
       url: url,
       data: params,
+      adUnitToBidId: getBidIdMap(bidRequests),
     };
   },
   interpretResponse: function(serverResponse, request) {
@@ -61,7 +60,7 @@ export const spec = {
         if (!utils.isEmpty(space.a)) {
           space.a.forEach(ad => {
             const bidResponse = {
-              requestId: adUnitToBidId[space.k],
+              requestId: request.adUnitToBidId[space.k],
               cpm: ad.pr,
               width: ad.w,
               height: ad.h,
@@ -147,8 +146,10 @@ function getSpacesString(bids) {
 
   return spacesString;
 }
-function saveBidIds(bidRequests) {
-  bidRequests.forEach(bid => adUnitToBidId[cleanName(bid.adUnitCode)] = bid.bidId);
+function getBidIdMap(bidRequests) {
+  let map = {};
+  bidRequests.forEach(bid => map[cleanName(bid.adUnitCode)] = bid.bidId);
+  return map;
 }
 
 registerBidder(spec);

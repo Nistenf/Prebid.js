@@ -62,7 +62,7 @@ describe('E-Planning Adapter', () => {
         'k': 'ROS'
       },
       'sp': [{
-        'k': 'spname',
+        'k': CLEAN_ADUNIT_CODE,
         'a': [{
           'adm': ADM,
           'id': '7854abc56248f874',
@@ -278,9 +278,9 @@ describe('E-Planning Adapter', () => {
     });
 
     it('should correctly map the parameters in the response', () => {
-      const bidResponse = spec.interpretResponse(response)[0];
-      delete bidResponse.requestId;
+      const bidResponse = spec.interpretResponse(response, { adUnitToBidId: { [CLEAN_ADUNIT_CODE]: BID_ID } })[0];
       const expectedResponse = {
+        requestId: BID_ID,
         cpm: CPM,
         width: W,
         height: H,
@@ -290,7 +290,6 @@ describe('E-Planning Adapter', () => {
         netRevenue: true,
         currency: 'USD',
       };
-
       expect(bidResponse).to.deep.equal(expectedResponse);
     });
   });
@@ -337,8 +336,8 @@ describe('E-Planning Adapter', () => {
 
   describe('adUnits mapping to bidId', () => {
     it('should correctly map the bidId to the adunit', () => {
-      spec.buildRequests([validBid, validBid2]);
-      const responses = spec.interpretResponse(responseWithTwoAdunits);
+      const requests = spec.buildRequests([validBid, validBid2]);
+      const responses = spec.interpretResponse(responseWithTwoAdunits, requests);
       expect(responses[0].requestId).to.equal(BID_ID);
       expect(responses[1].requestId).to.equal(BID_ID2);
     });
