@@ -7,17 +7,41 @@ describe('E-Planning Adapter', () => {
   const adapter = newBidder('spec');
   const CI = '12345';
   const ADUNIT_CODE = 'adunit-code';
+  const ADUNIT_CODE2 = 'adunit-code-dos';
+  const CLEAN_ADUNIT_CODE2 = 'adunitcodedos';
   const CLEAN_ADUNIT_CODE = 'adunitcode';
+  const BID_ID = '123456789';
+  const BID_ID2 = '987654321';
   const CPM = 1.3;
   const W = '300';
   const H = '250';
   const ADM = '<div>This is an ad</div>';
   const I_ID = '7854abc56248f873';
   const CRID = '1234567890';
+  const TEST_ISV = 'leles.e-planning.net';
   const validBid = {
     'bidder': 'eplanning',
+    'bidId': BID_ID,
     'params': {
       'ci': CI,
+    },
+    'adUnitCode': ADUNIT_CODE,
+    'sizes': [[300, 250], [300, 600]],
+  };
+  const validBid2 = {
+    'bidder': 'eplanning',
+    'bidId': BID_ID2,
+    'params': {
+      'ci': CI,
+    },
+    'adUnitCode': ADUNIT_CODE2,
+    'sizes': [[300, 250], [300, 600]],
+  };
+  const testBid = {
+    'bidder': 'eplanning',
+    'params': {
+      't': 1,
+      'isv': TEST_ISV
     },
     'adUnitCode': ADUNIT_CODE,
     'sizes': [[300, 250], [300, 600]],
@@ -51,6 +75,51 @@ describe('E-Planning Adapter', () => {
           'pr': CPM
         }],
       }],
+      'cs': [
+        'http://a-sync-url.com/',
+        {
+          'u': 'http://another-sync-url.com/test.php?&partner=123456&endpoint=us-east',
+          'ifr': true
+        }
+      ]
+    }
+  };
+  const responseWithTwoAdunits = {
+    body: {
+      'sI': {
+        'k': '12345'
+      },
+      'sec': {
+        'k': 'ROS'
+      },
+      'sp': [{
+        'k': CLEAN_ADUNIT_CODE,
+        'a': [{
+          'adm': ADM,
+          'id': '7854abc56248f874',
+          'i': I_ID,
+          'fi': '7854abc56248f872',
+          'ip': '45621afd87462104',
+          'w': W,
+          'h': H,
+          'crid': CRID,
+          'pr': CPM
+        }]
+      }, {
+        'k': CLEAN_ADUNIT_CODE2,
+        'a': [{
+          'adm': ADM,
+          'id': '7854abc56248f874',
+          'i': I_ID,
+          'fi': '7854abc56248f872',
+          'ip': '45621afd87462104',
+          'w': W,
+          'h': H,
+          'crid': CRID,
+          'pr': CPM
+        }],
+      },
+      ],
       'cs': [
         'http://a-sync-url.com/',
         {
@@ -109,9 +178,13 @@ describe('E-Planning Adapter', () => {
       expect(spec.isBidRequestValid(validBid)).to.equal(true);
     });
 
-    it('should return false when bid does not have ci parameter', () => {
+    it('should return false when bid does not have ci parameter and is not a test bid', () => {
       expect(spec.isBidRequestValid(invalidBid)).to.equal(false);
     });
+
+    it('should return true when bid does not have ci parameter but is a test bid'), () => {
+      expect(spec.isBidRequestValid(testBid).to.equal(true));
+    }
   });
 
   describe('buildRequests', () => {
@@ -180,11 +253,16 @@ describe('E-Planning Adapter', () => {
     it('should return fr parameter when there is a referrer', () => {
       const referrer = 'thisisafakereferrer';
       const stubGetReferrer = sinon.stub(utils, 'getTopWindowReferrer').returns(referrer);
+      after(() => stubGetReferrer.restore());
 
       const fr = spec.buildRequests(bidRequests).data.fr;
       expect(fr).to.equal(referrer);
+    });
 
-      stubGetReferrer.restore();
+    it('should return the testing url when the request has the t parameter', () => {
+      const url = spec.buildRequests([testBid]).url;
+      const expectedUrl = '//' + TEST_ISV + '/layers/t_pbjs_2.json';
+      expect(url).to.equal(expectedUrl);
     });
   });
 
@@ -201,13 +279,13 @@ describe('E-Planning Adapter', () => {
 
     it('should correctly map the parameters in the response', () => {
       const bidResponse = spec.interpretResponse(response)[0];
+      delete bidResponse.requestId;
       const expectedResponse = {
-        requestId: I_ID,
         cpm: CPM,
         width: W,
         height: H,
         ad: ADM,
-        ttl: 360,
+        ttl: 120,
         creativeId: CRID,
         netRevenue: true,
         currency: 'USD',
@@ -254,6 +332,15 @@ describe('E-Planning Adapter', () => {
     it('should only return iframes if pixel is not enabled', () => {
       const syncs = spec.getUserSyncs(sOptionsOnlyIframe, [response]);
       syncs.forEach(sync => expect(sync.type).to.equal('iframe'));
+    });
+  });
+
+  describe('adUnits mapping to bidId', () => {
+    it('should correctly map the bidId to the adunit', () => {
+      spec.buildRequests([validBid, validBid2]);
+      const responses = spec.interpretResponse(responseWithTwoAdunits);
+      expect(responses[0].requestId).to.equal(BID_ID);
+      expect(responses[1].requestId).to.equal(BID_ID2);
     });
   });
 });

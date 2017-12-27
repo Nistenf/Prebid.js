@@ -4,35 +4,46 @@ import { registerBidder } from 'src/adapters/bidderFactory';
 const BIDDER_CODE = 'eplanning';
 const rnd = Math.random();
 const DEFAULT_SV = 'ads.us.e-planning.net';
-const PARAMS = ['ci', 'sv'];
+const DEFAULT_ISV = 'i.e-planning.net';
+const PARAMS = ['ci', 'sv', 't'];
 const DOLLARS = 'USD';
 const NET_REVENUE = true;
 const TTL = 120;
 const NULL_SIZE = '1x1';
 const FILE = 'file';
+let adUnitToBidId = {};
 
 export const spec = {
   code: BIDDER_CODE,
   isBidRequestValid: function(bid) {
-    return Boolean(bid.params.ci);
+    return Boolean(bid.params.ci) || Boolean(bid.params.t);
   },
   buildRequests: function(bidRequests) {
+    saveBidIds(bidRequests);
     const method = 'GET';
     const dfpClientId = '1';
     const sec = 'ROS';
+    let url;
+    let params;
     const urlConfig = getUrlConfig(bidRequests);
-    const url = '//' + (urlConfig.sv || DEFAULT_SV) + '/hb/1/' + urlConfig.ci + '/' + dfpClientId + '/' + (utils.getTopWindowLocation().hostname || FILE) + '/' + sec;
-    const referrerUrl = utils.getTopWindowReferrer();
-    const spacesString = getSpacesString(bidRequests);
-    let params = {
-      rnd: rnd,
-      e: spacesString,
-      ur: utils.getTopWindowUrl() || FILE,
-      r: 'pbjs',
-      pbv: '$prebid.version$',
-    };
-    if (referrerUrl) {
-      params.fr = referrerUrl;
+
+    if (urlConfig.t) {
+      url = urlConfig.isv + '/layers/t_pbjs_2.json';
+      params = {};
+    } else {
+      url = '//' + (urlConfig.sv || DEFAULT_SV) + '/hb/1/' + urlConfig.ci + '/' + dfpClientId + '/' + (utils.getTopWindowLocation().hostname || FILE) + '/' + sec;
+      const referrerUrl = utils.getTopWindowReferrer();
+      const spacesString = getSpacesString(bidRequests);
+      params = {
+        rnd: rnd,
+        e: spacesString,
+        ur: utils.getTopWindowUrl() || FILE,
+        r: 'pbjs',
+        pbv: '$prebid.version$',
+      };
+      if (referrerUrl) {
+        params.fr = referrerUrl;
+      }
     }
 
     return {
@@ -50,7 +61,7 @@ export const spec = {
         if (!utils.isEmpty(space.a)) {
           space.a.forEach(ad => {
             const bidResponse = {
-              requestId: ad.i,
+              requestId: adUnitToBidId[space.k],
               cpm: ad.pr,
               width: ad.w,
               height: ad.h,
@@ -97,6 +108,10 @@ function cleanName(name) {
   return name.replace(/_|\.|-|\//g, '').replace(/\)\(|\(|\)/g, '_').replace(/^_+|_+$/g, '');
 }
 function getUrlConfig(bidRequests) {
+  if (isTestRequest(bidRequests)) {
+    return getTestConfig(bidRequests.filter(br => br.params.t));
+  }
+
   let config = {};
   bidRequests.forEach(bid => {
     PARAMS.forEach(param => {
@@ -112,12 +127,28 @@ function getUrlConfig(bidRequests) {
 
   return config;
 }
+function isTestRequest(bidRequests) {
+  let isTest = false;
+  bidRequests.forEach(bid => isTest = bid.params.t);
+  return isTest;
+}
+function getTestConfig(bidRequests) {
+  let isv;
+  bidRequests.forEach(br => isv = isv || br.params.isv);
+  return {
+    t: true,
+    isv: '//' + (isv || DEFAULT_ISV)
+  };
+}
 function getSpacesString(bids) {
   const spacesString = bids.map(bid =>
     cleanName(bid.adUnitCode) + ':' + (bid.sizes && bid.sizes.length ? utils.parseSizesInput(bid.sizes).join(',') : NULL_SIZE)
   ).join('+');
 
   return spacesString;
+}
+function saveBidIds(bidRequests) {
+  bidRequests.forEach(bid => adUnitToBidId[cleanName(bid.adUnitCode)] = bid.bidId);
 }
 
 registerBidder(spec);

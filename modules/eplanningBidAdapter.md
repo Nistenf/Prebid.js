@@ -18,10 +18,11 @@ var adUnits = [
       bidderCode: 'eplanning',
       bids: [{
         code: 'div-gpt-ad-1460505748561-0',
-        sizes: [[300, 250], [300, 600]],
+        sizes: [[300, 250]],
         bidder: 'eplanning',
         params: {
           ci: '18f66',
+          t: 1
         }
       }]
     }
